@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Student Enrollment Form</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <style>
+        body {
+            padding-top: 20px;
+            font-family: "Inter", sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            background-color: #f9f9f9;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .form-group label {
+            font-weight: bold;
+        }
+        .btn-group {
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .btn-group .btn {
+            flex-grow: 1;
+            margin: 0 5px;
+            border-radius: 5px;
+        }
+        .modal-header {
+            background-color: #5cb85c;
+            color: white;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+        .modal-content {
+            border-radius: 8px;
+        }
+        .modal-footer {
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Student Enrollment Form</h2>
+        <form id="enrollmentForm" method="post">
+            <div class="form-group">
+                <label for="rollNo">Roll No:</label>
+                <input type="text" class="form-control" name="rollNo" id="rollNo" placeholder="Enter Roll No" required>
+            </div>
+            <div class="form-group">
+                <label for="fullName">Full Name:</label>
+                <input type="text" class="form-control" id="fullName" placeholder="Enter Full Name" name="fullName" required>
+            </div>
+            <div class="form-group">
+                <label for="studentClass">Class:</label>
+                <input type="text" class="form-control" id="studentClass" placeholder="Enter Class" name="studentClass" required>
+            </div>
+            <div class="form-group">
+                <label for="birthDate">Birth Date:</label>
+                <input type="date" class="form-control" id="birthDate" name="birthDate" required>
+            </div>
+            <div class="form-group">
+                <label for="address">Address:</label>
+                <textarea class="form-control" id="address" placeholder="Enter Address" name="address" rows="3" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="enrollmentDate">Enrollment Date:</label>
+                <input type="date" class="form-control" id="enrollmentDate" name="enrollmentDate" required>
+            </div>
+            <div class="btn-group">
+                <button type="button" class="btn btn-success" id="saveStudent" onclick="saveStudentData();">Save</button>
+                <button type="button" class="btn btn-warning" id="updateStudent" onclick="updateStudentData();">Update</button>
+                <button type="button" class="btn btn-primary" id="resetFormBtn" onclick="resetForm();">Reset</button>
+            </div>
+        </form>
+    </div>
+    <div class="modal fade" id="messageModal" tabindex="-1" role="dialog" aria-labelledby="messageModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="messageModalLabel">Message</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="messageModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var recordNo = "";
+        const CONN_TOKEN = "90935013|-31949211018360834|90959286";
+        const DB_NAME = "SCHOOL-DB";
+        const REL_NAME = "STUDENT-TABLE";
+        const DB_BASE_URL = "http://api.login2explore.com:5577";
+        const IML_API_URL = "/api/iml";
+        const IRL_API_URL = "/api/irl";
+
+        function showMessage(message) {
+            $("#messageModalBody").text(message);
+            $("#messageModal").modal("show");
+        }
+
+        function resetForm() {
+            $("#rollNo").val("").prop("disabled", false);
+            $("#fullName").val("").prop("disabled", true);
+            $("#studentClass").val("").prop("disabled", true);
+            $("#birthDate").val("").prop("disabled", true);
+            $("#address").val("").prop("disabled", true);
+            $("#enrollmentDate").val("").prop("disabled", true);
+            $("#saveStudent").prop("disabled", true);
+            $("#updateStudent").prop("disabled", true);
+            $("#resetFormBtn").prop("disabled", true);
+            $("#rollNo").focus();
+            recordNo = "";
+        }
+
+        function validateAndGetFormData() {
+            var rollNoVar = $("#rollNo").val();
+            var fullNameVar = $("#fullName").val();
+            var studentClassVar = $("#studentClass").val();
+            var birthDateVar = $("#birthDate").val();
+            var addressVar = $("#address").val();
+            var enrollmentDateVar = $("#enrollmentDate").val();
+
+            if (rollNoVar === "") { showMessage("Roll No is Required Value"); $("#rollNo").focus(); return ""; }
+            if (fullNameVar === "") { showMessage("Full Name is Required Value"); $("#fullName").focus(); return ""; }
+            if (studentClassVar === "") { showMessage("Class is Required Value"); $("#studentClass").focus(); return ""; }
+            if (birthDateVar === "") { showMessage("Birth Date is Required Value"); $("#birthDate").focus(); return ""; }
+            if (addressVar === "") { showMessage("Address is Required Value"); $("#address").focus(); return ""; }
+            if (enrollmentDateVar === "") { showMessage("Enrollment Date is Required Value"); $("#enrollmentDate").focus(); return ""; }
+
+            var jsonStrObj = {
+                rollNo: rollNoVar,
+                fullName: fullNameVar,
+                studentClass: studentClassVar,
+                birthDate: birthDateVar,
+                address: addressVar,
+                enrollmentDate: enrollmentDateVar
+            };
+            return JSON.stringify(jsonStrObj);
+        }
+
+        function createPUTRequest(connToken, jsonObj, dbName, relName) {
+            var putRequest = "{\n" +
+                "\"token\" : \"" + connToken + "\"," +
+                "\"dbName\": \"" + dbName + "\",\n" +
+                "\"cmd\" : \"PUT\",\n" +
+                "\"rel\" : \"" + relName + "\"," +
+                "\"jsonStr\": \n" + jsonObj + "\n" +
+                "}";
+            return putRequest;
+        }
+
+        function createLOOKUPRequest(connToken, dbName, relName, primaryKeyValue, primaryKeyName) {
+            var lookupRequest = "{\n" +
+                "\"token\" : \"" + connToken + "\"," +
+                "\"dbName\": \"" + dbName + "\",\n" +
+                "\"cmd\" : \"LOOKUP\",\n" +
+                "\"rel\" : \"" + relName + "\"," +
+                "\"jsonStr\": {\"" + primaryKeyName + "\":\"" + primaryKeyValue + "\"}\n" +
+                "}";
+            return lookupRequest;
+        }
+
+        function createCHANGERequest(connToken, jsonObj, dbName, relName, recordNo) {
+            var changeRequest = "{\n" +
+                "\"token\" : \"" + connToken + "\"," +
+                "\"dbName\": \"" + dbName + "\",\n" +
+                "\"cmd\" : \"CHANGE\",\n" +
+                "\"rel\" : \"" + relName + "\"," +
+                "\"jsonStr\": \n" + jsonObj + ",\n" +
+                "\"recordNo\" : " + recordNo + "\n" +
+                "}";
+            return changeRequest;
+        }
+
+        function executeCommand(reqString, dbBaseUrl, apiEndPointUrl) {
+            var url = dbBaseUrl + apiEndPointUrl;
+            var jsonObj;
+            try {
+                $.ajax({
+                    url: url,
+                    type: "POST",
+                    data: reqString,
+                    async: false,
+                    success: function(result) {
+                        jsonObj = JSON.parse(result);
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        jsonObj = { status: 500, message: "AJAX Error: " + textStatus + " - " + errorThrown };
+                        if (jqXHR.responseText) {
+                            try {
+                                jsonObj = JSON.parse(jqXHR.responseText);
+                            } catch (e) {
+                                jsonObj.message += " | Response: " + jqXHR.responseText;
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                jsonObj = { status: 500, message: "Execution Error: " + e.message };
+            }
+            return jsonObj;
+        }
+
+        function getStudent() {
+            var rollNoVal = $("#rollNo").val();
+            if (rollNoVal === "") {
+                resetForm();
+                return;
+            }
+
+            var lookupReqStr = createLOOKUPRequest(CONN_TOKEN, DB_NAME, REL_NAME, rollNoVal, "rollNo");
+            var resultObj = executeCommand(lookupReqStr, DB_BASE_URL, IRL_API_URL);
+
+            if (resultObj.status === 200) {
+                recordNo = resultObj.rec_no;
+                var data = JSON.parse(resultObj.data);
+                $("#fullName").val(data.fullName).prop("disabled", false);
+                $("#studentClass").val(data.studentClass).prop("disabled", false);
+                $("#birthDate").val(data.birthDate).prop("disabled", false);
+                $("#address").val(data.address).prop("disabled", false);
+                $("#enrollmentDate").val(data.enrollmentDate).prop("disabled", false);
+                $("#rollNo").prop("disabled", true);
+                $("#saveStudent").prop("disabled", true);
+                $("#updateStudent").prop("disabled", false);
+                $("#resetFormBtn").prop("disabled", false);
+                $("#fullName").focus();
+            } else if (resultObj.status === 400) {
+                $("#fullName").val("").prop("disabled", false);
+                $("#studentClass").val("").prop("disabled", false);
+                $("#birthDate").val("").prop("disabled", false);
+                $("#address").val("").prop("disabled", false);
+                $("#enrollmentDate").val("").prop("disabled", false);
+                $("#rollNo").prop("disabled", false);
+                $("#saveStudent").prop("disabled", false);
+                $("#updateStudent").prop("disabled", true);
+                $("#resetFormBtn").prop("disabled", false);
+                $("#fullName").focus();
+                recordNo = "";
+            } else {
+                showMessage("Error fetching data: " + (resultObj.message || "Unknown error"));
+                resetForm();
+            }
+        }
+
+        function saveStudentData() {
+            var jsonStr = validateAndGetFormData();
+            if (jsonStr === "") return;
+            var putReqStr = createPUTRequest(CONN_TOKEN, jsonStr, DB_NAME, REL_NAME);
+            var resultObj = executeCommand(putReqStr, DB_BASE_URL, IML_API_URL);
+            if (resultObj.status === 200) {
+                showMessage("Student data saved successfully!");
+                resetForm();
+            } else {
+                showMessage("Error saving data: " + (resultObj.message || "Unknown error"));
+            }
+        }
+
+        function updateStudentData() {
+            var jsonStr = validateAndGetFormData();
+            if (jsonStr === "") return;
+            if (recordNo === "") {
+                showMessage("Error: No record selected for update. Please lookup a student first.");
+                return;
+            }
+            var changeReqStr = createCHANGERequest(CONN_TOKEN, jsonStr, DB_NAME, REL_NAME, recordNo);
+            var resultObj = executeCommand(changeReqStr, DB_BASE_URL, IML_API_URL);
+            if (resultObj.status === 200) {
+                showMessage("Student data updated successfully!");
+                resetForm();
+            } else {
+                showMessage("Error updating data: " + (resultObj.message || "Unknown error"));
+            }
+        }
+
+        $("#rollNo").on("blur", function() {
+            getStudent();
+        });
+
+        $(document).ready(function() {
+            resetForm(); 
+        });
+    </script>
+</body>
+</html>
