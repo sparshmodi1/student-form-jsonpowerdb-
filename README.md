@@ -18,5 +18,4 @@ Benefits of using JsonPowerDB:
   - Bootstrap styling  
   - Responsive modal for alerts  
   - Enhanced form validation
-
  
